@@ -287,19 +287,6 @@ export function initUI() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
-  const ctaPrimary = $('ctaPrimary');
-  if (ctaPrimary) {
-    ctaPrimary.addEventListener('click', () => {
-      $('dropzone').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
-  }
-  const ctaSecondary = $('ctaSecondary');
-  if (ctaSecondary) {
-    ctaSecondary.addEventListener('click', () => {
-      document.querySelector('.supported-formats')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
-  }
-
   setCategory('image');
 }
 

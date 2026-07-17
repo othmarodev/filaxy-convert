@@ -49,11 +49,6 @@
             </div>
             <p class="tagline" data-i18n="tagline">Sin subidas, sin servidor, sin límites. Tus archivos nunca salen de tu dispositivo.</p>
 
-            <div class="cta-row">
-                <button class="btn-primary" id="ctaPrimary" type="button" data-i18n="ctaPrimary">Empezar a convertir</button>
-                <button class="btn-outline" id="ctaSecondary" type="button" data-i18n="ctaSecondary">Ver formatos compatibles</button>
-            </div>
-
             <div class="stats-row">
                 <span><strong data-i18n="statAllLocal">100% local</strong></span>
                 <span><strong data-i18n="statFormats">17 formatos</strong></span>
@@ -61,31 +56,30 @@
             </div>
         </header>
 
-        <div class="hero-visual" id="heroVisual" role="img" aria-label="Filaxy Convert — animación 3D de formas geométricas flotando ingrávidas"></div>
+        <div class="hero-stage" id="heroStage">
+            <div class="hero-canvas" id="heroVisual" role="img" aria-label="Filaxy Convert — insignias de formato reales flotando ingrávidas en 3D"></div>
 
-        <div class="card">
-            <div class="card-title">
-                <div class="icon purple">📂</div>
-                <span data-i18n="selectFile">Seleccionar Archivo</span>
-            </div>
-
-            <div class="dropzone" id="dropzone">
-                <input type="file" id="fileInput">
-                <div class="dropzone-icon">📁</div>
-                <div class="dropzone-text">
-                    <strong data-i18n="dropzoneStrong">Haz clic para elegir</strong> <span data-i18n="dropzoneRest">o arrastra un archivo aquí</span>
+            <div class="hero-dropzone">
+                <div class="dropzone" id="dropzone">
+                    <input type="file" id="fileInput">
+                    <div class="dropzone-icon">📁</div>
+                    <div class="dropzone-text">
+                        <strong data-i18n="dropzoneStrong">Haz clic para elegir</strong> <span data-i18n="dropzoneRest">o arrastra un archivo aquí</span>
+                    </div>
                 </div>
-            </div>
 
-            <div class="file-info" id="fileInfo">
-                <div class="file-info-icon" id="fileInfoIcon">📄</div>
-                <div class="file-info-details">
-                    <div class="file-info-name" id="fileName">—</div>
-                    <div class="file-info-size" id="fileSize">—</div>
+                <div class="file-info" id="fileInfo">
+                    <div class="file-info-icon" id="fileInfoIcon">📄</div>
+                    <div class="file-info-details">
+                        <div class="file-info-name" id="fileName">—</div>
+                        <div class="file-info-size" id="fileSize">—</div>
+                    </div>
+                    <button class="file-remove" id="fileRemove" data-i18n-title="remove" title="Eliminar">✕</button>
                 </div>
-                <button class="file-remove" id="fileRemove" data-i18n-title="remove" title="Eliminar">✕</button>
             </div>
         </div>
+
+        <a class="formats-link" href="#supportedFormats" id="formatsLink" data-i18n="formatsLink">Ver todos los formatos compatibles ↓</a>
 
         <div class="card">
             <div class="card-title">
@@ -149,7 +143,7 @@
             </div>
         </div>
 
-        <div class="card">
+        <div class="card" id="supportedFormats">
             <div class="card-title">
                 <div class="icon purple">📋</div>
                 <span data-i18n="supportedFormats">Formatos Compatibles</span>

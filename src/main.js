@@ -20,10 +20,13 @@ renderHistory();
 // (the actual product) is interactive, so the hero animation never delays
 // first paint or blocks the main thread on load.
 const heroVisual = document.getElementById('heroVisual');
-if (heroVisual) {
+const heroStage = document.getElementById('heroStage');
+if (heroVisual && heroStage) {
   const mountScene = () =>
     import('./scene/antigravity.js').then(({ initAntigravityScene }) => {
-      initAntigravityScene(heroVisual, { accent: 0x2dd4bf, accent2: 0xf59e0b });
+      // Track pointer moves on the whole stage (not just the canvas) so the
+      // parallax still works while the cursor is over the dropzone on top.
+      initAntigravityScene(heroVisual, heroStage);
     });
   if ('requestIdleCallback' in window) requestIdleCallback(mountScene, { timeout: 2000 });
   else setTimeout(mountScene, 200);

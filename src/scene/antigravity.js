@@ -1,57 +1,88 @@
 import * as THREE from 'three';
 
-const SHAPE_COUNT = 7;
-const PARTICLE_COUNT = 220;
+// Real formats users actually convert, one pair per category — literal,
+// not abstract, so the hero reads as "this converts files" at a glance.
+const BADGES = [
+  { label: 'PNG', color: 0x2dd4bf },
+  { label: 'JSON', color: 0xf59e0b },
+  { label: 'YAML', color: 0x2dd4bf },
+  { label: 'MD', color: 0xf59e0b },
+  { label: 'B64', color: 0x2dd4bf },
+  { label: 'HTML', color: 0xf59e0b },
+  { label: 'CSV', color: 0x2dd4bf },
+  { label: 'WEBP', color: 0xf59e0b },
+];
 
-function buildShape(geometry, color, emissiveIntensity) {
-  const group = new THREE.Group();
+function makeBadgeTexture(label, colorHex) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 288;
+  const ctx = canvas.getContext('2d');
 
-  const material = new THREE.MeshStandardMaterial({
-    color,
-    emissive: color,
-    emissiveIntensity,
-    roughness: 0.25,
-    metalness: 0.65,
-    transparent: true,
-    opacity: 0.92,
-  });
-  const mesh = new THREE.Mesh(geometry, material);
-  group.add(mesh);
+  const color = `#${colorHex.toString(16).padStart(6, '0')}`;
+  const radius = 48;
+  const w = canvas.width;
+  const h = canvas.height;
 
-  const edges = new THREE.EdgesGeometry(geometry);
-  const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 }));
-  group.add(line);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(radius, 0);
+  ctx.arcTo(w, 0, w, h, radius);
+  ctx.arcTo(w, h, 0, h, radius);
+  ctx.arcTo(0, h, 0, 0, radius);
+  ctx.arcTo(0, 0, w, 0, radius);
+  ctx.closePath();
+  ctx.fill();
 
-  return group;
+  ctx.fillStyle = 'rgba(4, 18, 15, 0.92)';
+  ctx.font = '800 150px Inter, system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, w / 2, h / 2 + 10);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+  return texture;
 }
 
-function randomGeometry() {
-  const pick = Math.floor(Math.random() * 5);
-  const scale = 0.55 + Math.random() * 0.55;
-  switch (pick) {
-    case 0:
-      return new THREE.IcosahedronGeometry(scale, 0);
-    case 1:
-      return new THREE.OctahedronGeometry(scale, 0);
-    case 2:
-      return new THREE.TorusGeometry(scale * 0.7, scale * 0.26, 12, 32);
-    case 3:
-      return new THREE.TetrahedronGeometry(scale, 0);
-    default:
-      return new THREE.DodecahedronGeometry(scale * 0.8, 0);
-  }
+function buildBadge({ label, color }) {
+  const texture = makeBadgeTexture(label, color);
+  const aspect = 512 / 288;
+  const height = 1.1;
+  const width = height * aspect;
+  const depth = 0.09;
+
+  const faceMaterial = new THREE.MeshStandardMaterial({
+    map: texture,
+    emissiveMap: texture,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.35,
+    roughness: 0.35,
+    metalness: 0.1,
+  });
+  const edgeMaterial = new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.3,
+    metalness: 0.7,
+  });
+
+  const geometry = new THREE.BoxGeometry(width, height, depth);
+  // Box face order: +x, -x, +y, -y, +z, -z — texture on front/back, solid edges on the rest.
+  const mesh = new THREE.Mesh(geometry, [edgeMaterial, edgeMaterial, edgeMaterial, edgeMaterial, faceMaterial, faceMaterial]);
+  return mesh;
 }
 
 /**
- * Mounts a real Three.js "zero-gravity" scene: geometric shapes that drift,
- * bob, and slowly tumble as if weightless. Returns a controller with
- * `dispose()` to tear down the renderer/animation loop.
+ * Mounts a real Three.js "zero-gravity" scene: literal file-format badges
+ * (PNG, JSON, MD...) drifting and tumbling as if weightless — not abstract
+ * decoration. Returns a controller with `dispose()` to tear it down.
  */
-export function initAntigravityScene(container, { accent = 0x2dd4bf, accent2 = 0xf59e0b } = {}) {
+export function initAntigravityScene(mountEl, pointerTargetEl = mountEl) {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const width = container.clientWidth;
-  const height = container.clientHeight;
+  const width = mountEl.clientWidth;
+  const height = mountEl.clientHeight;
 
   let renderer;
   try {
@@ -63,88 +94,90 @@ export function initAntigravityScene(container, { accent = 0x2dd4bf, accent2 = 0
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(width, height);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  container.appendChild(renderer.domElement);
+  mountEl.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x000000, 0.0);
-
-  const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+  const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
   camera.position.set(0, 0, 9);
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-  const keyLight = new THREE.PointLight(accent, 6, 20);
-  keyLight.position.set(-4, 3, 5);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+  const keyLight = new THREE.PointLight(0x2dd4bf, 5, 22);
+  keyLight.position.set(-5, 3, 6);
   scene.add(keyLight);
-  const fillLight = new THREE.PointLight(accent2, 5, 20);
-  fillLight.position.set(4, -2, 4);
+  const fillLight = new THREE.PointLight(0xf59e0b, 4.5, 22);
+  fillLight.position.set(5, -2, 5);
   scene.add(fillLight);
 
-  const shapesGroup = new THREE.Group();
-  const shapes = [];
-  for (let i = 0; i < SHAPE_COUNT; i++) {
-    const color = i % 2 === 0 ? accent : accent2;
-    const shape = buildShape(randomGeometry(), color, 0.35);
-    shape.position.set((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 4.5, (Math.random() - 0.5) * 4);
-    shape.userData = {
-      bobSpeed: 0.4 + Math.random() * 0.5,
+  const badgesGroup = new THREE.Group();
+  const badges = [];
+  BADGES.forEach((spec, i) => {
+    const badge = buildBadge(spec);
+    // Two loose rings so badges keep clear of the dropzone card in the center.
+    const ring = i % 2;
+    const angle = (i / BADGES.length) * Math.PI * 2;
+    const radius = ring === 0 ? 4.6 : 6.4;
+    badge.position.set(
+      Math.cos(angle) * radius * 0.62,
+      Math.sin(angle) * radius * 0.32 + (ring === 0 ? 0.6 : -0.4),
+      (Math.random() - 0.5) * 2 - 1,
+    );
+    badge.userData = {
+      bobSpeed: 0.35 + Math.random() * 0.4,
       bobPhase: Math.random() * Math.PI * 2,
-      bobAmount: 0.25 + Math.random() * 0.35,
-      rotSpeed: new THREE.Vector3((Math.random() - 0.5) * 0.25, (Math.random() - 0.5) * 0.25, (Math.random() - 0.5) * 0.15),
-      baseY: shape.position.y,
+      bobAmount: 0.22 + Math.random() * 0.28,
+      rotSpeed: new THREE.Vector3((Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.08),
+      baseY: badge.position.y,
     };
-    shapes.push(shape);
-    shapesGroup.add(shape);
-  }
-  scene.add(shapesGroup);
+    badges.push(badge);
+    badgesGroup.add(badge);
+  });
+  scene.add(badgesGroup);
 
-  // Zero-gravity dust particles
+  const particleCount = 160;
   const particleGeo = new THREE.BufferGeometry();
-  const positions = new Float32Array(PARTICLE_COUNT * 3);
-  for (let i = 0; i < PARTICLE_COUNT; i++) {
-    positions[i * 3] = (Math.random() - 0.5) * 14;
-    positions[i * 3 + 1] = (Math.random() - 0.5) * 8;
+  const positions = new Float32Array(particleCount * 3);
+  for (let i = 0; i < particleCount; i++) {
+    positions[i * 3] = (Math.random() - 0.5) * 16;
+    positions[i * 3 + 1] = (Math.random() - 0.5) * 9;
     positions[i * 3 + 2] = (Math.random() - 0.5) * 6;
   }
   particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   const particles = new THREE.Points(
     particleGeo,
-    new THREE.PointsMaterial({ color: 0xffffff, size: 0.02, transparent: true, opacity: 0.35 }),
+    new THREE.PointsMaterial({ color: 0xffffff, size: 0.02, transparent: true, opacity: 0.3 }),
   );
   scene.add(particles);
 
   let pointerX = 0;
   let pointerY = 0;
   function handlePointerMove(e) {
-    const rect = container.getBoundingClientRect();
+    const rect = mountEl.getBoundingClientRect();
     pointerX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     pointerY = ((e.clientY - rect.top) / rect.height) * 2 - 1;
   }
-  container.addEventListener('pointermove', handlePointerMove);
+  pointerTargetEl.addEventListener('pointermove', handlePointerMove);
 
   let frameId = null;
   const clock = new THREE.Clock();
 
   function renderStaticFrame() {
-    shapes.forEach((shape) => {
-      shape.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
-    });
     renderer.render(scene, camera);
   }
 
   function animate() {
     const elapsed = clock.getElapsedTime();
 
-    shapes.forEach((shape) => {
-      const d = shape.userData;
-      shape.position.y = d.baseY + Math.sin(elapsed * d.bobSpeed + d.bobPhase) * d.bobAmount;
-      shape.rotation.x += d.rotSpeed.x * 0.01;
-      shape.rotation.y += d.rotSpeed.y * 0.01;
-      shape.rotation.z += d.rotSpeed.z * 0.01;
+    badges.forEach((badge) => {
+      const d = badge.userData;
+      badge.position.y = d.baseY + Math.sin(elapsed * d.bobSpeed + d.bobPhase) * d.bobAmount;
+      badge.rotation.x += d.rotSpeed.x * 0.01;
+      badge.rotation.y += d.rotSpeed.y * 0.01;
+      badge.rotation.z += d.rotSpeed.z * 0.01;
     });
 
-    shapesGroup.rotation.y += (pointerX * 0.15 - shapesGroup.rotation.y) * 0.02;
-    shapesGroup.rotation.x += (pointerY * -0.1 - shapesGroup.rotation.x) * 0.02;
-    particles.rotation.y = elapsed * 0.02;
+    badgesGroup.rotation.y += (pointerX * 0.12 - badgesGroup.rotation.y) * 0.02;
+    badgesGroup.rotation.x += (pointerY * -0.08 - badgesGroup.rotation.x) * 0.02;
+    particles.rotation.y = elapsed * 0.015;
 
     renderer.render(scene, camera);
     frameId = requestAnimationFrame(animate);
@@ -157,25 +190,27 @@ export function initAntigravityScene(container, { accent = 0x2dd4bf, accent2 = 0
   }
 
   function handleResize() {
-    const w = container.clientWidth;
-    const h = container.clientHeight;
+    const w = mountEl.clientWidth;
+    const h = mountEl.clientHeight;
     if (!w || !h) return;
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
   }
   const resizeObserver = new ResizeObserver(handleResize);
-  resizeObserver.observe(container);
+  resizeObserver.observe(mountEl);
 
   return {
     dispose() {
       if (frameId) cancelAnimationFrame(frameId);
       resizeObserver.disconnect();
-      container.removeEventListener('pointermove', handlePointerMove);
-      shapes.forEach((shape) => {
-        shape.children.forEach((child) => {
-          child.geometry?.dispose();
-          child.material?.dispose();
+      pointerTargetEl.removeEventListener('pointermove', handlePointerMove);
+      badges.forEach((badge) => {
+        badge.geometry?.dispose();
+        (Array.isArray(badge.material) ? badge.material : [badge.material]).forEach((m) => {
+          m.map?.dispose();
+          m.emissiveMap?.dispose();
+          m.dispose();
         });
       });
       particleGeo.dispose();
