@@ -36,6 +36,6 @@ describe('parseStructured / stringifyStructured', () => {
   });
 
   it('throws a helpful error for unsupported formats', () => {
-    expect(() => parseStructured('toml', '')).toThrow(/Unsupported/);
+    expect(() => parseStructured('ini', '')).toThrow(/Unsupported/);
   });
 });

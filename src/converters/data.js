@@ -1,4 +1,5 @@
 import jsyaml from 'js-yaml';
+import * as toml from 'smol-toml';
 
 // Splits a CSV line on commas that are outside double-quoted fields.
 export function splitCsvLine(line) {
@@ -133,11 +134,14 @@ export function toXML(data) {
   return '<?xml version="1.0" encoding="UTF-8"?>\n' + objToXML(data, 'root');
 }
 
+// TOML documents must be a table (object) at the root — an array of rows
+// (from CSV/XLSX) gets wrapped under "rows" so it round-trips predictably.
 export function parseStructured(from, text) {
   if (from === 'json') return JSON.parse(text);
   if (from === 'csv') return csvParse(text);
   if (from === 'xml') return xmlParse(text);
   if (from === 'yaml') return jsyaml.load(text);
+  if (from === 'toml') return toml.parse(text);
   throw new Error(`Unsupported data format: ${from}`);
 }
 
@@ -146,5 +150,26 @@ export function stringifyStructured(to, data) {
   if (to === 'csv') return csvStringify(data);
   if (to === 'xml') return toXML(data);
   if (to === 'yaml') return jsyaml.dump(data);
+  if (to === 'toml') return toml.stringify(Array.isArray(data) ? { rows: data } : data);
   throw new Error(`Unsupported data format: ${to}`);
+}
+
+// xlsx is a ~500KB library, so it's dynamically imported only when a user
+// actually picks XLSX, instead of bloating the main bundle for everyone else.
+// XLSX is also binary — handled outside parseStructured/stringifyStructured
+// (which are text-in/text-out) via a raw ArrayBuffer.
+export async function xlsxToRows(arrayBuffer) {
+  const XLSX = await import('xlsx');
+  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+  const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+}
+
+export async function rowsToXlsxBuffer(data) {
+  const XLSX = await import('xlsx');
+  const rows = Array.isArray(data) ? data : [data];
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+  return XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
 }

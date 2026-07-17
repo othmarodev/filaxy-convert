@@ -3,7 +3,7 @@ import { t } from './i18n.js';
 const STORAGE_KEY = 'convertHistory';
 const MAX_ENTRIES = 20;
 
-export const categoryIcons = { image: '🖼', data: '📊', text: '📝', encode: '🔐' };
+export const categoryIcons = { image: '🖼', data: '📊', text: '📝', encode: '🔐', hash: '🔢' };
 
 let history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 

@@ -10,20 +10,24 @@ A free, privacy-first file converter that runs entirely in your browser — no u
 ## Features
 
 - 🖼 **Images** — PNG, JPEG, WebP, GIF, BMP, ICO (via `<canvas>`)
-- 📊 **Data** — JSON, CSV, XML, YAML
+- 📊 **Data** — JSON, CSV, XML, YAML, TOML, XLSX
 - 📝 **Text** — TXT, HTML, Markdown, RTF
-- 🔐 **Encoding** — Base64, URL, Hex — UTF-8 safe, so accents/emoji/Cyrillic round-trip correctly
+- 🔐 **Encoding** — Base64, URL, Hex, JWT decode — UTF-8 safe, so accents/emoji/Cyrillic round-trip correctly
+- 🔢 **Hash** — MD5, SHA-1, SHA-256, SHA-384, SHA-512 file checksums
+- 🛠 **Quick utilities** — Color (HEX/RGB/HSL) and Unix timestamp converters, instant, no file needed
 - 🌐 Bilingual UI (Spanish / English), instant switch, no reload
 - 🌗 Light / dark theme with no flash on load
-- 🪐 Real-time 3D hero — geometric shapes drifting weightlessly (Three.js, not a CSS trick)
+- 🪐 Real-time 3D hero — real file-format badges drifting weightlessly (Three.js, not a CSS trick)
 - 🕐 Local conversion history (`localStorage`)
 - ✅ Unit-tested converters (Vitest) + CI on every push
 - 100% client-side — files never leave your device
+- Heavy dependencies (Three.js, XLSX) are lazy-loaded on demand, not in the main bundle
 
 ## Why
 
 Most online converters upload your file to a server. Filaxy Convert does everything in-browser with
-the File API, Canvas API, and `js-yaml` — nothing is ever transmitted anywhere.
+the File API, Canvas API, Web Crypto, and a handful of small parsing libraries — nothing is ever
+transmitted anywhere.
 
 ## Getting started
 
@@ -47,15 +51,19 @@ src/
 ├── i18n.js                  # ES/EN translations
 ├── theme.js                  # light/dark toggle
 ├── ui.js                      # DOM wiring (dropzone, tabs, convert flow)
-├── history.js                  # conversion history (localStorage)
+├── widgets.js                   # instant Color/Timestamp utilities (no file)
+├── history.js                     # conversion history (localStorage)
 ├── converters/
-│   ├── image.js                 # canvas-based image conversion
-│   ├── data.js                    # JSON/CSV/XML/YAML
-│   ├── text.js                      # TXT/HTML/Markdown/RTF
-│   └── encode.js                      # Base64/URL/Hex (UTF-8 safe)
+│   ├── image.js                     # canvas-based image conversion
+│   ├── data.js                        # JSON/CSV/XML/YAML/TOML/XLSX
+│   ├── text.js                          # TXT/HTML/Markdown/RTF
+│   ├── encode.js                          # Base64/URL/Hex/JWT (UTF-8 safe)
+│   ├── hash.js                              # MD5 (hand-rolled) + SHA via Web Crypto
+│   ├── color.js                               # HEX/RGB/HSL parsing + formatting
+│   └── timestamp.js                             # Unix timestamp <-> local datetime
 └── scene/
-    └── antigravity.js                 # Three.js hero visual
-tests/                                   # Vitest unit tests
+    └── antigravity.js                             # Three.js hero visual (lazy-loaded)
+tests/                                               # Vitest unit tests
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide, including how to add a new format.

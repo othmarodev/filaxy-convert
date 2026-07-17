@@ -41,3 +41,20 @@ export function convertEncoding(from, to, text) {
   const bytes = decodeToBytes(from, text.trim());
   return encodeFromBytes(to, bytes);
 }
+
+function base64UrlToBytes(str) {
+  const padded = str.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = padded.length % 4 === 0 ? '' : '='.repeat(4 - (padded.length % 4));
+  const bin = atob(padded + pad);
+  return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+}
+
+// Decodes a JWT's header and payload (both base64url JSON). This is a
+// decoder, not a verifier — the signature is not checked, matching what
+// tools like jwt.io show without the signing secret.
+export function decodeJWT(token) {
+  const parts = token.trim().split('.');
+  if (parts.length < 2) throw new Error('Not a valid JWT (expected header.payload.signature)');
+  const decodePart = (part) => JSON.parse(new TextDecoder().decode(base64UrlToBytes(part)));
+  return JSON.stringify({ header: decodePart(parts[0]), payload: decodePart(parts[1]) }, null, 2);
+}

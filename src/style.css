@@ -327,6 +327,62 @@ header p.tagline {
 .history-item-time { font-size: 0.72rem; color: var(--text-dim); white-space: nowrap; }
 .empty-history { text-align: center; padding: 30px; color: var(--text-dim); font-size: 0.9rem; }
 
+/* ---------- Quick utilities (color / timestamp — no file needed) ---------- */
+.utilities-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+}
+
+.utility-title {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.utility-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+
+.utility-input, .utility-output {
+    flex: 1;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 0.9rem;
+    font-family: inherit;
+    min-width: 0;
+}
+.utility-input:focus, .utility-output:focus { outline: none; border-color: var(--accent); }
+.utility-output { color: var(--text-dim); cursor: default; }
+
+.color-swatch {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    background: transparent;
+}
+
+.util-copy {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.25s;
+    flex-shrink: 0;
+}
+.util-copy:hover { border-color: var(--accent); color: var(--accent); }
+
 footer {
     text-align: center;
     padding: 30px 20px;

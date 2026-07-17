@@ -51,7 +51,7 @@
 
             <div class="stats-row">
                 <span><strong data-i18n="statAllLocal">100% local</strong></span>
-                <span><strong data-i18n="statFormats">17 formatos</strong></span>
+                <span><strong data-i18n="statFormats">27 formatos</strong></span>
                 <span><strong data-i18n="statZeroUpload">0 subidas</strong></span>
             </div>
         </header>
@@ -92,16 +92,17 @@
                 <button class="cat-tab" data-cat="data">📊 <span data-i18n="catData">Datos</span></button>
                 <button class="cat-tab" data-cat="text">📝 <span data-i18n="catText">Texto</span></button>
                 <button class="cat-tab" data-cat="encode">🔐 <span data-i18n="catEncode">Codificación</span></button>
+                <button class="cat-tab" data-cat="hash">🔢 <span data-i18n="catHash">Hash</span></button>
             </div>
 
             <div class="format-row">
-                <div class="format-group">
+                <div class="format-group" id="fromFormatGroup">
                     <div class="format-label" data-i18n="fromFormat">Desde Formato</div>
                     <select class="format-select" id="fromFormat"></select>
                 </div>
                 <button class="swap-btn" id="swapBtn" data-i18n-title="swap" title="Intercambiar">⇄</button>
                 <div class="format-group">
-                    <div class="format-label" data-i18n="toFormat">A Formato</div>
+                    <div class="format-label" id="toFormatLabel" data-i18n="toFormat">A Formato</div>
                     <select class="format-select" id="toFormat"></select>
                 </div>
             </div>
@@ -171,6 +172,8 @@
                         <span class="format-tag">CSV</span>
                         <span class="format-tag">XML</span>
                         <span class="format-tag">YAML</span>
+                        <span class="format-tag">TOML</span>
+                        <span class="format-tag">XLSX</span>
                     </div>
                 </div>
                 <div class="format-card">
@@ -192,6 +195,66 @@
                         <span class="format-tag">Base64</span>
                         <span class="format-tag">URL</span>
                         <span class="format-tag">Hex</span>
+                        <span class="format-tag">JWT</span>
+                    </div>
+                </div>
+                <div class="format-card">
+                    <div class="format-card-icon">🔢</div>
+                    <div class="format-card-title" data-i18n="catHash">Hash</div>
+                    <div class="format-card-desc" data-i18n="descHash">Huellas digitales de archivos</div>
+                    <div class="format-tags">
+                        <span class="format-tag">MD5</span>
+                        <span class="format-tag">SHA-1</span>
+                        <span class="format-tag">SHA-256</span>
+                        <span class="format-tag">SHA-384</span>
+                        <span class="format-tag">SHA-512</span>
+                    </div>
+                </div>
+                <div class="format-card">
+                    <div class="format-card-icon">🛠</div>
+                    <div class="format-card-title" data-i18n="catUtilities">Utilidades</div>
+                    <div class="format-card-desc" data-i18n="descUtilities">Herramientas instantáneas, sin archivo</div>
+                    <div class="format-tags">
+                        <span class="format-tag">Color</span>
+                        <span class="format-tag">Unix Timestamp</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                <div class="icon green">🛠</div>
+                <span data-i18n="quickUtilities">Utilidades Rápidas</span>
+            </div>
+
+            <div class="utilities-grid">
+                <div class="utility">
+                    <div class="utility-title" data-i18n="colorConverter">Color</div>
+                    <input type="text" class="utility-input" id="colorInput" data-i18n-placeholder="colorPlaceholder" placeholder="#2dd4bf, rgb(...), hsl(...)">
+                    <div class="utility-row">
+                        <span class="color-swatch" id="colorSwatch"></span>
+                        <input type="text" class="utility-output" id="colorHex" readonly>
+                        <button class="util-copy" id="colorHexCopy" type="button" data-i18n-title="copy" title="Copiar">📋</button>
+                    </div>
+                    <div class="utility-row">
+                        <input type="text" class="utility-output" id="colorRgb" readonly>
+                        <button class="util-copy" id="colorRgbCopy" type="button" data-i18n-title="copy" title="Copiar">📋</button>
+                    </div>
+                    <div class="utility-row">
+                        <input type="text" class="utility-output" id="colorHsl" readonly>
+                        <button class="util-copy" id="colorHslCopy" type="button" data-i18n-title="copy" title="Copiar">📋</button>
+                    </div>
+                </div>
+
+                <div class="utility">
+                    <div class="utility-title" data-i18n="timestampConverter">Unix Timestamp</div>
+                    <div class="utility-row">
+                        <input type="number" class="utility-input" id="timestampInput">
+                        <button class="util-copy" id="timestampNow" type="button" data-i18n="now">Ahora</button>
+                    </div>
+                    <div class="utility-row">
+                        <input type="datetime-local" class="utility-input" id="datetimeInput" step="1">
                     </div>
                 </div>
             </div>

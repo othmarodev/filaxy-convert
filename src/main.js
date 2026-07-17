@@ -3,6 +3,7 @@ import { applyLang, setLang, getLang } from './i18n.js';
 import { applyTheme, toggleTheme } from './theme.js';
 import { initUI } from './ui.js';
 import { renderHistory } from './history.js';
+import { initColorWidget, initTimestampWidget } from './widgets.js';
 
 document.getElementById('langToggle').addEventListener('click', () => {
   setLang(getLang() === 'es' ? 'en' : 'es');
@@ -15,6 +16,8 @@ applyTheme();
 applyLang();
 initUI();
 renderHistory();
+initColorWidget();
+initTimestampWidget();
 
 // Three.js is ~500KB — load it as a separate chunk after the converter UI
 // (the actual product) is interactive, so the hero animation never delays

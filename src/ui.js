@@ -1,9 +1,10 @@
 import { t, getLang } from './i18n.js';
 import { addHistoryEntry } from './history.js';
 import { convertImage } from './converters/image.js';
-import { parseStructured, stringifyStructured } from './converters/data.js';
+import { parseStructured, stringifyStructured, xlsxToRows, rowsToXlsxBuffer } from './converters/data.js';
 import { convertText } from './converters/text.js';
-import { convertEncoding } from './converters/encode.js';
+import { convertEncoding, decodeJWT } from './converters/encode.js';
+import { computeHash } from './converters/hash.js';
 
 export const formats = {
   image: {
@@ -11,27 +12,35 @@ export const formats = {
     to: ['png', 'jpeg', 'webp', 'bmp', 'ico'],
   },
   data: {
-    from: ['json', 'csv', 'xml', 'yaml'],
-    to: ['json', 'csv', 'xml', 'yaml'],
+    from: ['json', 'csv', 'xml', 'yaml', 'toml', 'xlsx'],
+    to: ['json', 'csv', 'xml', 'yaml', 'toml', 'xlsx'],
   },
   text: {
     from: ['txt', 'html', 'md', 'rtf'],
     to: ['txt', 'html', 'md', 'rtf'],
   },
   encode: {
-    from: ['base64', 'url', 'hex'],
+    // 'jwt' is decode-only — it's handled as a special case, forced to 'json'.
+    from: ['base64', 'url', 'hex', 'jwt'],
     to: ['base64', 'url', 'hex'],
+  },
+  hash: {
+    // Hashing doesn't care about the source format, so there's nothing to
+    // pick — the "from" selector is hidden for this category (see setCategory).
+    from: ['file'],
+    to: ['md5', 'sha1', 'sha256', 'sha384', 'sha512'],
   },
 };
 
 const FILE_ICONS = {
   png: '🖼', jpeg: '🖼', jpg: '🖼', webp: '🖼', gif: '🖼', bmp: '🖼', ico: '🖼',
-  json: '📋', csv: '📊', xml: '📰', yaml: '📰', yml: '📰',
+  json: '📋', csv: '📊', xml: '📰', yaml: '📰', yml: '📰', toml: '📰', xlsx: '📗',
   txt: '📝', html: '🌐', htm: '🌐', md: '📝', rtf: '📝',
-  base64: '🔐', url: '🔗', hex: '#️⃣',
+  base64: '🔐', url: '🔗', hex: '#️⃣', jwt: '🔑',
 };
 
 const IMAGE_TYPES = new Set(['png', 'jpeg', 'jpg', 'webp', 'gif', 'bmp', 'ico']);
+const BINARY_PREVIEW_TYPES = new Set(['xlsx']);
 
 let currentCategory = 'image';
 let selectedFile = null;
@@ -65,8 +74,10 @@ export function initUI() {
   const fileSizeEl = $('fileSize');
   const fileInfoIcon = $('fileInfoIcon');
   const fileRemove = $('fileRemove');
+  const fromFormatGroup = $('fromFormatGroup');
   const fromFormat = $('fromFormat');
   const toFormat = $('toFormat');
+  const toFormatLabel = $('toFormatLabel');
   const convertBtn = $('convertBtn');
   const statusMsg = $('statusMsg');
   const resultCard = $('resultCard');
@@ -89,23 +100,34 @@ export function initUI() {
     convertBtn.disabled = !selectedFile || fromFormat.value === toFormat.value;
   }
 
+  function populateToFormat() {
+    const cfg = formats[currentCategory];
+    const fromVal = fromFormat.value;
+    const isJwt = currentCategory === 'encode' && fromVal === 'jwt';
+    const options = isJwt ? ['json'] : cfg.to.filter((f) => f !== fromVal);
+    toFormat.innerHTML = options.map((f) => `<option value="${f}">${f.toUpperCase()}</option>`).join('');
+  }
+
   function setCategory(cat) {
     currentCategory = cat;
     document.querySelectorAll('.cat-tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.cat === cat));
 
     const cfg = formats[cat];
     fromFormat.innerHTML = cfg.from.map((f) => `<option value="${f}">${f.toUpperCase()}</option>`).join('');
-    toFormat.innerHTML = cfg.to.filter((f) => f !== fromFormat.value).map((f) => `<option value="${f}">${f.toUpperCase()}</option>`).join('');
-
-    imageOptions.style.display = cat === 'image' ? 'flex' : 'none';
 
     if (selectedFile) {
       const fileExt = getExt(selectedFile.name);
-      if (cfg.from.includes(fileExt)) {
-        fromFormat.value = fileExt;
-        toFormat.innerHTML = cfg.to.filter((f) => f !== fileExt).map((f) => `<option value="${f}">${f.toUpperCase()}</option>`).join('');
-      }
+      if (cfg.from.includes(fileExt)) fromFormat.value = fileExt;
     }
+    populateToFormat();
+
+    imageOptions.style.display = cat === 'image' ? 'flex' : 'none';
+
+    const isHash = cat === 'hash';
+    fromFormatGroup.style.display = isHash ? 'none' : '';
+    swapBtn.style.display = isHash ? 'none' : '';
+    toFormatLabel.dataset.i18n = isHash ? 'algorithm' : 'toFormat';
+    toFormatLabel.textContent = t(toFormatLabel.dataset.i18n);
 
     updateConvertBtn();
   }
@@ -138,7 +160,14 @@ export function initUI() {
       img.src = URL.createObjectURL(blob);
       img.style.maxWidth = '100%';
       resultPreview.appendChild(img);
+      copyBtn.style.display = 'none';
+    } else if (BINARY_PREVIEW_TYPES.has(type)) {
+      const note = document.createElement('div');
+      note.textContent = t('binaryPreviewNote');
+      resultPreview.appendChild(note);
+      copyBtn.style.display = 'none';
     } else {
+      copyBtn.style.display = '';
       const reader = new FileReader();
       reader.onload = (e) => {
         const preview = document.createElement('div');
@@ -189,9 +218,7 @@ export function initUI() {
   });
 
   fromFormat.addEventListener('change', () => {
-    const cfg = formats[currentCategory];
-    const val = fromFormat.value;
-    toFormat.innerHTML = cfg.to.filter((f) => f !== val).map((f) => `<option value="${f}">${f.toUpperCase()}</option>`).join('');
+    populateToFormat();
     updateConvertBtn();
   });
   toFormat.addEventListener('change', updateConvertBtn);
@@ -206,6 +233,7 @@ export function initUI() {
       const to = toFormat.value;
       const cat = currentCategory;
       const baseName = selectedFile.name.replace(/\.[^.]+$/, '');
+      let historyFrom = from;
 
       if (cat === 'image') {
         const blob = await convertImage(
@@ -223,15 +251,20 @@ export function initUI() {
         resultFileName = baseName + '.' + (to === 'jpg' ? 'jpeg' : to);
         showResult(blob, to);
       } else if (cat === 'data') {
-        const text = await selectedFile.text();
         let data;
         try {
-          data = parseStructured(from, text);
+          data = from === 'xlsx' ? await xlsxToRows(await selectedFile.arrayBuffer()) : parseStructured(from, await selectedFile.text());
         } catch (e) {
           throw new Error(t('statusParseError', from.toUpperCase()) + e.message);
         }
-        const result = stringifyStructured(to, data);
-        resultBlob = new Blob([result], { type: 'text/plain;charset=utf-8' });
+
+        if (to === 'xlsx') {
+          resultBlob = new Blob([await rowsToXlsxBuffer(data)], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          });
+        } else {
+          resultBlob = new Blob([stringifyStructured(to, data)], { type: 'text/plain;charset=utf-8' });
+        }
         resultFileName = baseName + '.' + to;
         showResult(resultBlob, to);
       } else if (cat === 'text') {
@@ -242,13 +275,29 @@ export function initUI() {
         showResult(resultBlob, to);
       } else if (cat === 'encode') {
         const text = await selectedFile.text();
-        const result = convertEncoding(from, to, text);
+        let result;
+        if (from === 'jwt') {
+          try {
+            result = decodeJWT(text);
+          } catch (e) {
+            throw new Error(t('statusParseError', 'JWT') + e.message);
+          }
+        } else {
+          result = convertEncoding(from, to, text);
+        }
         resultBlob = new Blob([result], { type: 'text/plain;charset=utf-8' });
         resultFileName = baseName + '.' + to;
         showResult(resultBlob, to);
+      } else if (cat === 'hash') {
+        const bytes = new Uint8Array(await selectedFile.arrayBuffer());
+        const hex = await computeHash(to, bytes);
+        resultBlob = new Blob([hex], { type: 'text/plain;charset=utf-8' });
+        resultFileName = baseName + '.' + to;
+        showResult(resultBlob, to);
+        historyFrom = getExt(selectedFile.name).toUpperCase() || 'FILE';
       }
 
-      addHistoryEntry(selectedFile.name, from, to, resultFileName, cat);
+      addHistoryEntry(selectedFile.name, historyFrom, to, resultFileName, cat);
     } catch (err) {
       showStatus(t('statusError') + err.message, 'error');
       console.error(err);
